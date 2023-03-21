@@ -1,0 +1,26 @@
+[
+{
+    "model": "authentication.role",
+    "pk": 1,
+    "fields": {
+        "name": "user",
+        "title": "Пользователь"
+    }
+},
+{
+    "model": "authentication.role",
+    "pk": 2,
+    "fields": {
+        "name": "moderator",
+        "title": "Модератор"
+    }
+},
+{
+    "model": "authentication.role",
+    "pk": 3,
+    "fields": {
+        "name": "admin",
+        "title": "Администратор"
+    }
+}
+]
