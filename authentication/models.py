@@ -54,7 +54,7 @@ class User(AbstractBaseUser):
     password = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     blocked_until = models.DateTimeField(blank=True, null=True, default=None)
-    role = models.ForeignKey(Role, null=True, on_delete=models.SET_NULL)
+    role = models.ForeignKey(Role, default=Roles.USER, on_delete=models.PROTECT)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username", "password"]
