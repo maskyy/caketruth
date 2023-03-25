@@ -1,0 +1,16 @@
+[
+{
+    "model": "core.foodtype",
+    "pk": 1,
+    "fields": {
+        "name": "product"
+    }
+},
+{
+    "model": "core.foodtype",
+    "pk": 2,
+    "fields": {
+        "name": "recipe"
+    }
+}
+]
