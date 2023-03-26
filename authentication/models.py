@@ -86,3 +86,6 @@ class User(AbstractBaseUser):
 
     def get_short_name(self):
         return self.username
+
+    def __str__(self):
+        return f"{self.id}: {self.email} ({self.username})"

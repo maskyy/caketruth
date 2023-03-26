@@ -20,9 +20,9 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         """Users can view their data but cannot ban or change roles"""
         model = User
-        fields = ["email", "username", "password",
+        fields = ["id", "email", "username", "password",
                   "password_confirm", "blocked_until", "role"]
-        read_only_fields = ["blocked_until", "role"]
+        read_only_fields = ["id", "blocked_until", "role"]
         extra_kwargs = {
             "password": {"write_only": True}
         }
@@ -56,7 +56,7 @@ class ModeratorSerializer(UserSerializer):
     """Serializer for moderators"""
     class Meta(UserSerializer.Meta):
         """Moderators can set ban status but not roles"""
-        read_only_fields = ["role"]
+        read_only_fields = ["id", "role"]
 
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
@@ -74,7 +74,7 @@ class AdminSerializer(ModeratorSerializer):
         """All fields can be changed"""
         fields = ["email", "username", "password",
                   "password_confirm", "blocked_until", "role"]
-        read_only_fields = None
+        read_only_fields = ["id"]
 
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)

@@ -1,4 +1,6 @@
 """Provides models for the app"""
+from enum import IntEnum
+
 from django.db import models
 from authentication.models import User
 
@@ -8,10 +10,22 @@ class Meal(models.Model):
     name = models.CharField(max_length=64)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
+    def __str__(self):
+        return f"{self.id}: {self.name} ({self.user})"
 
 class FoodType(models.Model):
     """product or recipe"""
     name = models.CharField(max_length=64)
+
+    def __str__(self):
+        return f"{self.id}: {self.name}"
+
+
+class FoodTypes(IntEnum):
+    """Default food types provided by fixtures/food_types.json"""
+
+    PRODUCT = 1
+    RECIPE = 2
 
 
 class Food(models.Model):
@@ -25,7 +39,7 @@ class Food(models.Model):
     is_public = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
     food_type = models.ForeignKey(
-        FoodType, null=True, on_delete=models.SET_NULL)
+        FoodType, null=True, on_delete=models.PROTECT)
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
 
@@ -33,26 +47,36 @@ class ProductCategory(models.Model):
     """Product categories (dairy, meat etc.)"""
     title = models.CharField(max_length=64)
 
+    def __str__(self):
+        return f"{self.id}: {self.title}"
+
 
 class ProductBrand(models.Model):
     """Product manufacturers"""
     title = models.CharField(max_length=64)
 
+    def __str__(self):
+        return f"{self.id}: {self.title}"
+
 
 class Product(Food):
     """Additional data for products"""
-    net_grams = models.FloatField(blank=True)
-    drained_grams = models.FloatField(blank=True)
+    net_grams = models.FloatField(blank=True, null=True)
+    drained_grams = models.FloatField(blank=True, null=True)
     product_category = models.ForeignKey(
-        ProductCategory, null=True, on_delete=models.SET_NULL)
+        ProductCategory, blank=True, null=True, on_delete=models.SET_NULL)
     product_brand = models.ForeignKey(
-        ProductBrand, null=True, on_delete=models.SET_NULL)
+        ProductBrand, blank=True, null=True, on_delete=models.SET_NULL)
 
+    def __str__(self):
+        return f"{self.id}: {self.name} ({self.calories} kcal)"
 
 class RecipeCategory(models.Model):
     """Recipe categories (breakfast, lunch etc.)"""
     title = models.CharField(max_length=64)
 
+    def __str__(self):
+        return f"{self.id}: {self.title}"
 
 class Recipe(Food):
     """Additional data for recipes"""
@@ -65,7 +89,7 @@ class Recipe(Food):
 class RecipeProduct(models.Model):
     """A list of products for a recipe"""
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, null=True, on_delete=models.SET_NULL)
+    product = models.ForeignKey(Product, null=True, on_delete=models.PROTECT)
     mass = models.FloatField()
 
     class Meta:  # pylint: disable=too-few-public-methods
@@ -85,6 +109,6 @@ class Diary(models.Model):
     calc_carbs = models.FloatField()
     calc_ethanol = models.FloatField()
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    meal = models.ForeignKey(Meal, null=True, on_delete=models.SET_NULL)
+    meal = models.ForeignKey(Meal, null=True, on_delete=models.PROTECT)
     food = models.ForeignKey(Food, null=True, on_delete=models.SET_NULL)
     added_date = models.DateTimeField()
