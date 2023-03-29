@@ -1,15 +1,16 @@
-from django.shortcuts import get_object_or_404
-from rest_framework import generics, permissions
-from rest_framework.viewsets import GenericViewSet, ModelViewSet
-from rest_framework.mixins import ListModelMixin, CreateModelMixin, RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin
+from rest_framework.permissions import (IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
+from rest_framework.viewsets import ModelViewSet
+
 from authentication.permissions import IsOwner, IsStaffOrReadOnly
-from .serializers import *
-from .models import *
+
+from .models import * # pylint: disable=wildcard-import,unused-wildcard-import
+from .serializers import * # pylint: disable=wildcard-import,unused-wildcard-import
 
 
 class MealViewSet(ModelViewSet):
     serializer_class = MealSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
         return Meal.objects.filter(user=self.request.user)
@@ -34,7 +35,7 @@ class ProductBrandViewSet(ModelViewSet):
 class ProductViewSet(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -50,7 +51,7 @@ class RecipeCategoryViewSet(ModelViewSet):
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -58,7 +59,7 @@ class RecipeViewSet(ModelViewSet):
 
 class DiaryViewSet(ModelViewSet):
     serializer_class = DiarySerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
         return Diary.objects.filter(user=self.request.user)
