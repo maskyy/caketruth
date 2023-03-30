@@ -42,11 +42,6 @@ class FoodSerializer(serializers.ModelSerializer):
         return food
 
 
-class FoodStaffSerializer(FoodSerializer):
-    class Meta(FoodSerializer.Meta):
-        read_only_fields = ["id", "food_type", "user"]
-
-
 class ProductCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductCategory
@@ -65,6 +60,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         exclude = ["food_type"]
+        read_only_fields = ["is_public", "is_verified", "user"]
 
     def create(self, validated_data):
         validated_data["food_type"] = FoodType.objects.get(
@@ -78,12 +74,23 @@ class ProductSerializer(serializers.ModelSerializer):
         return product
 
     def update(self, instance, validated_data):
-        food = FoodSerializer(instance.food, data=validated_data, partial=True)
+        food = FoodSerializer(
+            instance.food_ptr, data=validated_data, partial=True)
         if food.is_valid(raise_exception=True):
             food.save()
-        # TODO
+        instance = super().update(instance, validated_data)
         return instance
 
+
+class ProductStaffSerializer(ProductSerializer):
+    class Meta(ProductSerializer.Meta):
+        read_only_fields = ["user"]
+
+
+class ProductListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ["id", "name", "calories"]
 
 
 class RecipeCategorySerializer(serializers.ModelSerializer):
@@ -110,6 +117,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = "__all__"
         read_only_fields = ["id"]
+
+
+class RecipeListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ["id", "name", "calories"]
 
 
 class DiarySerializer(serializers.ModelSerializer):
