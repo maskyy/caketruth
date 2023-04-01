@@ -1,4 +1,5 @@
 """Serializers for core models"""
+from django.db.models import QuerySet
 from rest_framework import serializers
 
 from .models import *  # pylint: disable=wildcard-import,unused-wildcard-import
@@ -78,8 +79,7 @@ class ProductSerializer(serializers.ModelSerializer):
             instance.food_ptr, data=validated_data, partial=True)
         if food.is_valid(raise_exception=True):
             food.save()
-        instance = super().update(instance, validated_data)
-        return instance
+        return super().update(instance, validated_data)
 
 
 class ProductStaffSerializer(ProductSerializer):
@@ -149,6 +149,16 @@ class RecipeSerializer(serializers.ModelSerializer):
             "user"
         ]
 
+    def _check_products(self, products):
+        if len(products) < 2:
+            raise serializers.ValidationError(
+                {"products": "At least 2 products are required"})
+        ids = [entry["product"].id for entry in products]
+        if len(ids) != len(set(ids)):
+            raise serializers.ValidationError(
+                {"products": "Duplicate entries not allowed"})
+        return products
+
     def _calculate_nutrients(self, products, mass):
         data = {
             "calories": 0,
@@ -166,10 +176,7 @@ class RecipeSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        products = validated_data.pop("products")
-        if len(products) < 2:
-            raise serializers.ValidationError(
-                {"products": "At least 2 products are required"})
+        products = self._check_products(validated_data.pop("products"))
         nutrients = self._calculate_nutrients(products, validated_data["mass"])
         validated_data |= nutrients
 
@@ -187,8 +194,26 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        instance = super().update(instance, validated_data)
-        return instance
+        food = FoodSerializer(
+            instance.food_ptr, data=validated_data, partial=True)
+        if food.is_valid(raise_exception=True):
+            food.save()
+
+        mass = validated_data.get("mass", instance.mass)
+        orig_products = [{"product": p.product, "mass": p.mass}
+                         for p in instance.products.all()]
+        products = validated_data.pop("products", orig_products)
+        if mass != instance.mass or products != orig_products:
+            products = self._check_products(products)
+            nutrients = self._calculate_nutrients(products, mass)
+            validated_data |= nutrients
+            # recreate entries if they are changed
+            if products != orig_products:
+                RecipeProduct.objects.filter(recipe=instance).delete()
+                for product in products:
+                    RecipeProduct.objects.create(recipe=instance, **product)
+
+        return super().update(instance, validated_data)
 
 
 class RecipeStaffSerializer(RecipeSerializer):
