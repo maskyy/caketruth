@@ -89,7 +89,7 @@ class Recipe(Food):
 
 class RecipeProduct(models.Model):
     """A list of products for a recipe"""
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name="products")
     product = models.ForeignKey(Product, null=True, on_delete=models.PROTECT)
     mass = models.FloatField()
 

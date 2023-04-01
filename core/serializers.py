@@ -84,13 +84,15 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class ProductStaffSerializer(ProductSerializer):
     class Meta(ProductSerializer.Meta):
-        read_only_fields = ["user"]
+        read_only_fields = None
 
 
 class ProductListSerializer(serializers.ModelSerializer):
+    product_brand = ProductBrandSerializer()
+
     class Meta:
         model = Product
-        fields = ["id", "name", "calories"]
+        fields = ["id", "name", "calories", "product_brand"]
 
 
 class RecipeCategorySerializer(serializers.ModelSerializer):
@@ -101,28 +103,103 @@ class RecipeCategorySerializer(serializers.ModelSerializer):
 
 
 class RecipeProductSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()
-
     class Meta:
         model = RecipeProduct
-        fields = "__all__"
-        read_only_fields = ["id", "recipe", "product"]
+        fields = ["product", "mass"]
+
+    def to_representation(self, instance):
+        print(instance.product)
+        return {
+            "id": instance.id,
+            "product": ProductListSerializer(instance.product).data,
+            "mass": instance.mass
+        }
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    recipe_category = RecipeCategorySerializer()
+    mass = serializers.FloatField(min_value=1)
     products = RecipeProductSerializer(many=True)
 
     class Meta:
         model = Recipe
-        fields = "__all__"
-        read_only_fields = ["id"]
+        fields = [
+            "id",
+            "name",
+            "calories",
+            "proteins",
+            "fats",
+            "carbs",
+            "ethanol",
+            "is_public",
+            "is_verified",
+            "user",
+            "directions",
+            "mass",
+            "recipe_category",
+            "products"
+        ]
+        read_only_fields = [
+            "calories",
+            "proteins",
+            "fats",
+            "carbs",
+            "ethanol",
+            "is_public",
+            "is_verified",
+            "user"
+        ]
+
+    def _calculate_nutrients(self, products, mass):
+        data = {
+            "calories": 0,
+            "proteins": 0,
+            "fats": 0,
+            "carbs": 0,
+            "ethanol": 0,
+        }
+        for product in products:
+            p = product["product"]
+            m = product["mass"] / 100
+            for k in data:
+                data[k] += getattr(p, k) * m
+        data = {k: round(v / (mass / 100), 2) for k, v in data.items()}
+        return data
+
+    def create(self, validated_data):
+        products = validated_data.pop("products")
+        if len(products) < 2:
+            raise serializers.ValidationError(
+                {"products": "At least 2 products are required"})
+        nutrients = self._calculate_nutrients(products, validated_data["mass"])
+        validated_data |= nutrients
+
+        validated_data["food_type"] = FoodType.objects.get(
+            id=FoodTypes.RECIPE)
+        food = FoodSerializer(data=validated_data)
+        if not food.is_valid(raise_exception=True):
+            return None
+
+        recipe = Recipe(**validated_data)
+        recipe.save()
+
+        for product in products:
+            RecipeProduct.objects.create(recipe=recipe, **product)
+        return recipe
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        return instance
+
+
+class RecipeStaffSerializer(RecipeSerializer):
+    class Meta(RecipeSerializer.Meta):
+        read_only_fields = ["calories", "proteins", "fats", "carbs", "ethanol"]
 
 
 class RecipeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
-        fields = ["id", "name", "calories"]
+        fields = ["id", "name", "calories", "mass"]
 
 
 class DiarySerializer(serializers.ModelSerializer):

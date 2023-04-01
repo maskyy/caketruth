@@ -1,6 +1,5 @@
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import (IsAuthenticated,
-                                        IsAuthenticatedOrReadOnly)
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
 from rest_framework import status
@@ -49,14 +48,14 @@ class ProductViewSet(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    def partial_update(self, request, pk=None):
+    def partial_update(self, request, *args, pk=None, **kwargs):
         product = get_object_or_404(Product, id=pk)
         if request.user.role.id == Roles.USER and request.user.id != product.user.id:
             raise PermissionDenied("Cannot change other users' products")
         serializer = self.get_serializer_class(request)(
             product, data=request.data, partial=True)
         if serializer.is_valid(raise_exception=True):
-            serializer.save()
+            serializer.save(user=self.request.user)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -69,11 +68,27 @@ class RecipeCategoryViewSet(ModelViewSet):
 # TODO search
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
-    serializer_class = RecipeSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [IsStaffOrOwnerOrReadOnly]
+
+    def get_serializer_class(self, request=None):
+        if self.action == "list":
+            return RecipeListSerializer
+        if request and request.user.role.id != Roles.USER:
+            return RecipeStaffSerializer
+        return RecipeSerializer
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def partial_update(self, request, *args, pk=None, **kwargs):
+        recipe = get_object_or_404(Recipe, id=pk)
+        if request.user.role.id == Roles.USER and request.user.id != recipe.user.id:
+            raise PermissionDenied("Cannot change other users' recipes")
+        serializer = self.get_serializer_class(request)(
+            recipe, data=request.data, partial=True)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save(user=self.request.user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class DiaryViewSet(ModelViewSet):
