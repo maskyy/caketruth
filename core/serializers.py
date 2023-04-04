@@ -149,12 +149,14 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def _check_products(self, products):
         if len(products) < 2:
-            raise serializers.ValidationError(
-                {"products": "At least 2 products are required"})
+            raise serializers.ValidationError({"products": [
+                "At least 2 products are required"
+            ]})
         ids = [entry["product"].id for entry in products]
         if len(ids) != len(set(ids)):
-            raise serializers.ValidationError(
-                {"products": "Duplicate entries not allowed"})
+            raise serializers.ValidationError({"products": [
+                "Duplicate entries not allowed"
+            ]})
         return products
 
     def _calculate_nutrients(self, products, mass):
@@ -263,6 +265,11 @@ class DiarySerializer(serializers.ModelSerializer):
         return result
 
     def create(self, validated_data):
+        if validated_data["user"].id != validated_data["meal"].user.id:
+            raise serializers.ValidationError({"meal": [
+                "Cannot use other users' meals"
+            ]})
+        print(validated_data["user"].id, validated_data["meal"].user.id)
         food = validated_data["food"]
         mass = validated_data["mass"]
         validated_data |= self._calculate_nutrients(food, mass)
