@@ -110,6 +110,6 @@ class Diary(models.Model):
     calc_carbs = models.FloatField()
     calc_ethanol = models.FloatField()
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    meal = models.ForeignKey(Meal, null=True, on_delete=models.PROTECT)
-    food = models.ForeignKey(Food, null=True, on_delete=models.SET_NULL)
+    meal = models.ForeignKey(Meal, on_delete=models.PROTECT)
+    food = models.ForeignKey(Food, on_delete=models.PROTECT)
     added_date = models.DateTimeField()

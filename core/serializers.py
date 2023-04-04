@@ -1,5 +1,6 @@
 """Serializers for core models"""
-from django.db.models import QuerySet
+from datetime import datetime
+
 from rest_framework import serializers
 
 from .models import *  # pylint: disable=wildcard-import,unused-wildcard-import
@@ -108,12 +109,9 @@ class RecipeProductSerializer(serializers.ModelSerializer):
         fields = ["product", "mass"]
 
     def to_representation(self, instance):
-        print(instance.product)
-        return {
-            "id": instance.id,
-            "product": ProductListSerializer(instance.product).data,
-            "mass": instance.mass
-        }
+        data = super().to_representation(instance)
+        data["product"] = ProductListSerializer(instance.product).data
+        return data
 
 
 class RecipeSerializer(serializers.ModelSerializer):
@@ -228,7 +226,65 @@ class RecipeListSerializer(serializers.ModelSerializer):
 
 
 class DiarySerializer(serializers.ModelSerializer):
+    mass = serializers.FloatField(min_value=0.01, max_value=10000)
+    added_date = serializers.DateTimeField(
+        required=False, default=datetime.now())
+
     class Meta:
         model = Diary
-        fields = "__all__"
-        read_only_fields = ["user", "food"]
+        fields = [
+            "id",
+            "mass",
+            "calc_calories",
+            "calc_proteins",
+            "calc_fats",
+            "calc_carbs",
+            "calc_ethanol",
+            "user",
+            "meal",
+            "food",
+            "added_date"
+        ]
+        read_only_fields = [
+            "calc_calories",
+            "calc_proteins",
+            "calc_fats",
+            "calc_carbs",
+            "calc_ethanol",
+            "user"
+        ]
+
+    def _calculate_nutrients(self, food, mass):
+        mass /= 100
+        keys = ["calories", "proteins", "fats", "carbs", "ethanol"]
+        result = {}
+        for k in keys:
+            result["calc_" + k] = round(getattr(food, k) * mass, 2)
+        return result
+
+    def create(self, validated_data):
+        food = validated_data["food"]
+        mass = validated_data["mass"]
+        validated_data |= self._calculate_nutrients(food, mass)
+        record = Diary(**validated_data)
+        record.save()
+
+        return record
+
+    def update(self, instance, validated_data):
+        mass = validated_data.get("mass", instance.mass)
+        food = validated_data.get("food", instance.food)
+        if mass != instance.mass or food != instance.food:
+            validated_data |= self._calculate_nutrients(instance.food, mass)
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data.pop("food")
+        if instance.food.food_type.id == FoodTypes.PRODUCT:
+            product = Product.objects.get(id=instance.food.id)
+            data["product"] = ProductListSerializer(product).data
+        else:
+            recipe = Recipe.objects.get(id=instance.food.id)
+            data["recipe"] = RecipeListSerializer(recipe).data
+        return data

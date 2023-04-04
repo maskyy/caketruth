@@ -1,11 +1,14 @@
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.response import Response
 from rest_framework import status
-from authentication.permissions import IsOwner, IsStaffOrReadOnly, IsStaffOrOwnerOrReadOnly
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet
+
 from authentication.models import Roles
+from authentication.permissions import (IsOwner, IsStaffOrOwnerOrReadOnly,
+                                        IsStaffOrReadOnly)
+
 from .models import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from .serializers import *  # pylint: disable=wildcard-import,unused-wildcard-import
 
