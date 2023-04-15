@@ -89,11 +89,9 @@ class ProductStaffSerializer(ProductSerializer):
 
 
 class ProductListSerializer(serializers.ModelSerializer):
-    product_brand = ProductBrandSerializer()
-
     class Meta:
         model = Product
-        fields = ["id", "name", "calories", "product_brand"]
+        fields = ["id", "name", "calories", "product_category", "product_brand"]
 
 
 class RecipeCategorySerializer(serializers.ModelSerializer):
@@ -224,7 +222,7 @@ class RecipeStaffSerializer(RecipeSerializer):
 class RecipeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
-        fields = ["id", "name", "calories", "mass"]
+        fields = ["id", "name", "calories", "mass", "recipe_category"]
 
 
 class DiarySerializer(serializers.ModelSerializer):
